@@ -1,2 +1,2 @@
 # packagemerger
-A python tool used to merge python updates into changelists.
+A Python tool used to push package updates into changelists for Perforce.
