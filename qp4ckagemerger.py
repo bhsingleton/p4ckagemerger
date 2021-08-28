@@ -1,15 +1,16 @@
 import os
+import sys
 import shutil
+import getpass
 
-from PySide2 import QtCore, QtWidgets, QtGui
-from collections import deque
 from enum import Enum
+from collections import deque
+from PySide2 import QtCore, QtWidgets, QtGui
 
 from dcc.userinterface import qproxywindow, iconutils
 from dcc.perforce import clientutils, cmds, isConnected
 
 import logging
-
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -145,6 +146,8 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
     Overload of QProxyWindow used to display changelist updates.
     """
 
+    __escapechars__ = ''.join([chr(char) for char in range(1, 32)])
+
     def __init__(self, *args, **kwargs):
         """
         Overloaded method called after a new instance has been created.
@@ -162,8 +165,8 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         self._sourceDirectory = ''
         self._targetDirectory = ''
 
-        self._clients = clientutils.getClientNames()
-        self._client = None
+        self._clients = None
+        self._currentClient = None
 
         self._changelists = None
         self._currentChangelist = None
@@ -181,8 +184,8 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
         # Set window properties
         #
-        self.setObjectName('PackageMerger')
-        self.setWindowTitle('|| Python Package Merger')
+        self.setObjectName('P4ckageMerger')
+        self.setWindowTitle('|| P4ckage Merger')
         self.setMinimumSize(QtCore.QSize(400, 600))
 
         # Create central widget
@@ -283,9 +286,42 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
         # Create workspace widgets
         #
+        self.userLabel = QtWidgets.QLabel('User:')
+        self.userLabel.setFixedSize(QtCore.QSize(65, 20))
+        self.userLabel.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.userLabel.setAlignment(QtCore.Qt.AlignRight)
+
+        self.userLineEdit = QtWidgets.QLineEdit(os.environ.get('P4USER', getpass.getuser()))
+        self.userLineEdit.setFixedHeight(20)
+        self.userLineEdit.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+
+        self.refreshButton = QtWidgets.QPushButton(iconutils.getIconByName('refresh'), '')
+        self.refreshButton.setFixedSize(QtCore.QSize(20, 20))
+        self.refreshButton.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.refreshButton.clicked.connect(self.refreshWorkspaces)
+
+        self.userLayout = QtWidgets.QHBoxLayout()
+        self.userLayout.addWidget(self.userLabel)
+        self.userLayout.addWidget(self.userLineEdit)
+        self.userLayout.addWidget(self.refreshButton)
+
+        self.portLabel = QtWidgets.QLabel('Port:')
+        self.portLabel.setFixedSize(QtCore.QSize(65, 20))
+        self.portLabel.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.portLabel.setAlignment(QtCore.Qt.AlignRight)
+
+        self.portLineEdit = QtWidgets.QLineEdit(os.environ.get('P4PORT', 'localhost:1666'))
+        self.portLineEdit.setFixedHeight(20)
+        self.portLineEdit.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+
+        self.portLayout = QtWidgets.QHBoxLayout()
+        self.portLayout.addWidget(self.portLabel)
+        self.portLayout.addWidget(self.portLineEdit)
+
         self.workspaceLabel = QtWidgets.QLabel('Workspace:')
         self.workspaceLabel.setFixedSize(QtCore.QSize(65, 20))
         self.workspaceLabel.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.workspaceLabel.setAlignment(QtCore.Qt.AlignRight)
 
         self.workspaceComboBox = QtWidgets.QComboBox()
         self.workspaceComboBox.setFixedHeight(20)
@@ -301,6 +337,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         self.changelistLabel = QtWidgets.QLabel('Changelist:')
         self.changelistLabel.setFixedSize(QtCore.QSize(65, 20))
         self.changelistLabel.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.changelistLabel.setAlignment(QtCore.Qt.AlignRight)
 
         self.changelistComboBox = QtWidgets.QComboBox()
         self.changelistComboBox.setFixedHeight(20)
@@ -311,6 +348,8 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         self.changelistLayout.addWidget(self.changelistLabel)
         self.changelistLayout.addWidget(self.changelistComboBox)
 
+        self.settingsLayout.addLayout(self.userLayout)
+        self.settingsLayout.addLayout(self.portLayout)
         self.settingsLayout.addLayout(self.workspaceLayout)
         self.settingsLayout.addLayout(self.changelistLayout)
 
@@ -337,7 +376,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
         # Populate workspaces
         #
-        self.workspaceComboBox.addItems(clientutils.getClientNames())
+        self.refreshWorkspaces()
 
     @property
     def sourceDirectory(self):
@@ -492,20 +531,35 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
         return filePath.startswith(self._targetDirectory)
 
-    @staticmethod
-    def isIdentical(sourcePath, targetPath):
+    @classmethod
+    def removeEscapeChars(cls, string):
         """
-        Static method used to determine if the two supplied files have identical contents.
+        Removes any escape characters from the supplied string.
+        This method supports both python 2 and 3.
+
+        :type string: str
+        :rtype: str
+        """
+
+        # Inspect python version
+        #
+        if sys.version_info.major == 2:
+
+            return string.translate('', cls.__escapechars__)
+
+        else:
+
+            return string.translate(str.maketrans('', '', cls.__escapechars__))
+
+    @classmethod
+    def isIdentical(cls, sourcePath, targetPath):
+        """
+        Evaluates if the two supplied files are identical.
 
         :type sourcePath: str
         :type targetPath: str
         :rtype: bool
         """
-
-        # Define escape characters
-        # We're only interested in comparing non-escape characters
-        #
-        escapeChars = ''.join([chr(char) for char in range(1, 32)])
 
         # Try and compare files
         # If it's a binary file then assume they're not identical
@@ -519,8 +573,8 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
                 # Compare strings without escape characters
                 #
-                source = sourceFile.read().translate(str.maketrans('', '', escapeChars))
-                target = targetFile.read().translate(str.maketrans('', '', escapeChars))
+                source = cls.removeEscapeChars(sourceFile.read())
+                target = cls.removeEscapeChars(targetFile.read())
 
                 return source == target
 
@@ -730,6 +784,27 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
                 log.info('Skipping: %s' % filePath)
                 continue
 
+    def refreshWorkspaces(self, pressed=False):
+        """
+        Slot method called whenever the user clicks the refresh button.
+        This method will repopulate the workspaces based on the user credentials.
+
+        :type pressed: bool
+        :rtype: None
+        """
+
+        # Collect clients from user input
+        #
+        user = self.userLineEdit.text()
+        port = self.portLineEdit.text()
+
+        self._clients = clientutils.ClientSpecs(user=user, port=port)
+
+        # Populate combo box with new clients
+        #
+        self.workspaceComboBox.clear()
+        self.workspaceComboBox.addItems([x.name for x in self._clients.values()])
+
     def workspaceChanged(self, index):
         """
         Slot method called whenever the selected workspace combobox item is changed.
@@ -741,15 +816,19 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
         # Get selected client
         #
-        self._client = clientutils.getClientByName(self._clients[index])
+        comboBox = self.sender()  # type: QtWidgets.QComboBox
+        self._currentClient = self._clients[comboBox.currentText()]
 
-        # Collect associated changelists
+        # Append changelist items if client exists
         #
-        self._changelists = ['default']
-        self._changelists.extend([x['change'] for x in self._client.getChangelists()])
-
         self.changelistComboBox.clear()
-        self.changelistComboBox.addItems(self._changelists)
+
+        if self._currentClient is not None:
+
+            self._changelists = ['default']
+            self._changelists.extend([x['change'] for x in self._currentClient.getChangelists()])
+
+            self.changelistComboBox.addItems(self._changelists)
 
     def changelistChanged(self, index):
         """
@@ -762,18 +841,18 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
         self._currentChangelist = self._changelists[index]
 
-    def makeDirectories(self, path):
+    def makeDirectories(self, directory):
         """
         Creates all of the directories from the supplied path.
         For simplicity sake this method will ignore any pre-existing directories.
 
-        :type path: str
+        :type directory: str
         :rtype: None
         """
 
         try:
 
-            return os.makedirs(os.path.dirname(path))
+            return os.makedirs(directory)
 
         except OSError as exception:
 
@@ -787,18 +866,20 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         :rtype: None
         """
 
-        # Check if there is a connection
+        # Inspect user input
         #
-        if not isConnected():
+        user = self.userLineEdit.text()
+        port = self.portLineEdit.text()
+        client = self.workspaceComboBox.currentText()
+        changelist = self.changelistComboBox.currentText()
 
-            log.warning('Unable to connect to perforce server!')
+        if not client or not changelist:
+
+            QtWidgets.QMessageBox.warning(self, 'P4ckageMerger', 'Unable to connect to server!')
             return
 
         # Walk through tree
         #
-        client = self._client.name
-        changelist = self._currentChangelist
-
         for item in self.walk():
 
             # Check if this is a depot item
@@ -819,7 +900,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
                 log.info('Editing: %s -> %s' % (targetPath, sourcePath))
 
-                cmds.edit(sourcePath, client=client, changelist=changelist)
+                cmds.edit(sourcePath, user=user, port=port, client=client, changelist=changelist)
                 shutil.copy(targetPath, sourcePath)
 
             elif status == QFileStatus.Add:
@@ -829,12 +910,12 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
                 self.makeDirectories(os.path.dirname(sourcePath))
                 shutil.copy(targetPath, sourcePath)
 
-                cmds.add(sourcePath, client=client, changelist=changelist)
+                cmds.add(sourcePath, user=user, port=port, client=client, changelist=changelist)
 
             elif status == QFileStatus.Delete:
 
                 log.info('Deleting: %s' % sourcePath)
-                cmds.delete(sourcePath, client=client, changelist=changelist)
+                cmds.delete(sourcePath, user=user, port=port, client=client, changelist=changelist)
 
             else:
 
