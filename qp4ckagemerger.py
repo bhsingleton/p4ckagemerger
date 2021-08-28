@@ -614,6 +614,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         sourceDirectory = QtWidgets.QFileDialog.getExistingDirectory(
             parent=self,
             caption='Select Package',
+            dir=self._sourceDirectory,
             options=QtWidgets.QFileDialog.ShowDirsOnly
         )
 
@@ -647,6 +648,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         targetDirectory = QtWidgets.QFileDialog.getExistingDirectory(
             parent=self,
             caption='Select Package',
+            dir=self._targetDirectory,
             options=QtWidgets.QFileDialog.ShowDirsOnly
         )
 
