@@ -7,7 +7,7 @@ from enum import Enum
 from collections import deque
 from PySide2 import QtCore, QtWidgets, QtGui
 
-from dcc.userinterface import qproxywindow, iconutils
+from dcc.userinterface import qproxywindow, qiconlibrary
 from dcc.perforce import clientutils, cmds, isConnected
 
 import logging
@@ -30,10 +30,10 @@ class QDepotItem(QtGui.QStandardItem):
     """
 
     __icons__ = {
-        QFileStatus.Unchanged: iconutils.getIconByName('p4v_file'),
-        QFileStatus.Add: iconutils.getIconByName('p4v_file_add'),
-        QFileStatus.Delete: iconutils.getIconByName('p4v_file_delete'),
-        QFileStatus.Edit: iconutils.getIconByName('p4v_file_edit')
+        QFileStatus.Unchanged: qiconlibrary.getIconByName('p4v_file'),
+        QFileStatus.Add: qiconlibrary.getIconByName('p4v_file_add'),
+        QFileStatus.Delete: qiconlibrary.getIconByName('p4v_file_delete'),
+        QFileStatus.Edit: qiconlibrary.getIconByName('p4v_file_edit')
     }
 
     def __init__(self, sourcePath, targetPath):
@@ -295,7 +295,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         self.userLineEdit.setFixedHeight(20)
         self.userLineEdit.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
 
-        self.refreshButton = QtWidgets.QPushButton(iconutils.getIconByName('refresh'), '')
+        self.refreshButton = QtWidgets.QPushButton(qiconlibrary.getIconByName('refresh'), '')
         self.refreshButton.setFixedSize(QtCore.QSize(20, 20))
         self.refreshButton.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         self.refreshButton.clicked.connect(self.refreshWorkspaces)
@@ -689,7 +689,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         # Add top level item
         #
         name = os.path.split(self._sourceDirectory)[1]
-        topLevelItem = QtGui.QStandardItem(iconutils.getIconByName('p4v_folder'), name)
+        topLevelItem = QtGui.QStandardItem(qiconlibrary.getIconByName('p4v_folder'), name)
 
         self.packageModel.invisibleRootItem().appendRow(topLevelItem)
 
@@ -761,7 +761,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
             # Create new item
             #
             name = os.path.split(directory)[1]
-            item = QtGui.QStandardItem(iconutils.getIconByName('p4v_folder'), name)
+            item = QtGui.QStandardItem(qiconlibrary.getIconByName('p4v_folder'), name)
 
             parent.appendRow(item)
 
