@@ -146,6 +146,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
     Overload of QProxyWindow used to display changelist updates.
     """
 
+    __title__ = 'P4ckage Merger'
     __escapechars__ = ''.join([chr(char) for char in range(1, 32)])
 
     def __init__(self, *args, **kwargs):
@@ -171,7 +172,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         self._changelists = None
         self._currentChangelist = None
 
-    def __build__(self):
+    def __build__(self, **kwargs):
         """
         Private method used to build the user interface.
 
@@ -180,16 +181,11 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
         # Call parent method
         #
-        super(QP4ckageMerger, self).__build__()
-
-        # Set window properties
-        #
-        self.setObjectName('P4ckageMerger')
-        self.setWindowTitle('|| P4ckage Merger')
-        self.setMinimumSize(QtCore.QSize(400, 600))
+        super(QP4ckageMerger, self).__build__(**kwargs)
 
         # Create central widget
         #
+        self.setMinimumSize(QtCore.QSize(400, 600))
         self.setCentralWidget(QtWidgets.QWidget())
         self.centralWidget().setLayout(QtWidgets.QVBoxLayout())
 
