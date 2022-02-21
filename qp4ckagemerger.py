@@ -146,7 +146,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
     Overload of QProxyWindow used to display changelist updates.
     """
 
-    __title__ = 'P4ckage Merger'
+    # region Dunderscores
     __escapechars__ = ''.join([chr(char) for char in range(1, 32)])
 
     def __init__(self, *args, **kwargs):
@@ -185,6 +185,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
         # Create central widget
         #
+        self.setWindowTitle('P4ckage Merger')
         self.setMinimumSize(QtCore.QSize(400, 600))
         self.setCentralWidget(QtWidgets.QWidget())
         self.centralWidget().setLayout(QtWidgets.QVBoxLayout())
@@ -207,10 +208,10 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         self.sourceLineEdit.setReadOnly(True)
         self.sourceLineEdit.setFixedHeight(20)
         self.sourceLineEdit.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.sourceLineEdit.textChanged.connect(self.sourceChanged)
+        self.sourceLineEdit.textChanged.connect(self.on_sourceLineEdit_textChanged)
 
         self.sourceButton = QtWidgets.QPushButton('...')
-        self.sourceButton.clicked.connect(self.changeSource)
+        self.sourceButton.clicked.connect(self.on_sourceButton_clicked)
 
         self.sourceLayout = QtWidgets.QHBoxLayout()
         self.sourceLayout.addWidget(self.sourceLabel)
@@ -227,10 +228,10 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         self.targetLineEdit.setReadOnly(True)
         self.targetLineEdit.setFixedHeight(20)
         self.targetLineEdit.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.targetLineEdit.textChanged.connect(self.targetChanged)
+        self.targetLineEdit.textChanged.connect(self.on_targetLineEdit_textChanged)
 
         self.targetButton = QtWidgets.QPushButton('...')
-        self.targetButton.clicked.connect(self.changeTarget)
+        self.targetButton.clicked.connect(self.on_targetButton_clicked)
 
         self.targetLayout = QtWidgets.QHBoxLayout()
         self.targetLayout.addWidget(self.targetLabel)
@@ -241,7 +242,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         #
         self.diffButton = QtWidgets.QPushButton('Diff')
         self.diffButton.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.diffButton.clicked.connect(self.diff)
+        self.diffButton.clicked.connect(self.on_diffButton_clicked)
 
         # Assemble path fields
         #
@@ -294,7 +295,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         self.refreshButton = QtWidgets.QPushButton(qiconlibrary.getIconByName('refresh'), '')
         self.refreshButton.setFixedSize(QtCore.QSize(20, 20))
         self.refreshButton.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        self.refreshButton.clicked.connect(self.refreshWorkspaces)
+        self.refreshButton.clicked.connect(self.on_refreshButton_clicked)
 
         self.userLayout = QtWidgets.QHBoxLayout()
         self.userLayout.addWidget(self.userLabel)
@@ -322,7 +323,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         self.workspaceComboBox = QtWidgets.QComboBox()
         self.workspaceComboBox.setFixedHeight(20)
         self.workspaceComboBox.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.workspaceComboBox.currentIndexChanged.connect(self.workspaceChanged)
+        self.workspaceComboBox.currentIndexChanged.connect(self.on_workspaceComboBox_currentIndexChanged)
 
         self.workspaceLayout = QtWidgets.QHBoxLayout()
         self.workspaceLayout.addWidget(self.workspaceLabel)
@@ -338,7 +339,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         self.changelistComboBox = QtWidgets.QComboBox()
         self.changelistComboBox.setFixedHeight(20)
         self.changelistComboBox.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.changelistComboBox.currentIndexChanged.connect(self.changelistChanged)
+        self.changelistComboBox.currentIndexChanged.connect(self.on_changeListComboBox_currentIndexChanged)
 
         self.changelistLayout = QtWidgets.QHBoxLayout()
         self.changelistLayout.addWidget(self.changelistLabel)
@@ -354,26 +355,12 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         # Create commit button
         #
         self.commitButton = QtWidgets.QPushButton('Commit')
-        self.commitButton.clicked.connect(self.commit)
+        self.commitButton.clicked.connect(self.on_commitButton_clicked)
 
         self.centralWidget().layout().addWidget(self.commitButton)
-
-    def showEvent(self, event):
-        """
-        Overloaded method called after the window has been shown.
-
-        :type event: QtGui.QShowEvent
-        :rtype: None
-        """
-
-        # Call inherited method
-        #
-        super(QP4ckageMerger, self).showEvent(event)
-
-        # Populate workspaces
-        #
-        self.refreshWorkspaces()
-
+    # endregion
+    
+    # region Properties
     @property
     def sourceDirectory(self):
         """
@@ -393,7 +380,9 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         """
 
         return self._targetDirectory
-
+    # endregion
+    
+    # region Methods
     @staticmethod
     def iterItems(item, column=0):
         """
@@ -454,6 +443,90 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         """
 
         return self.topLevelItems(column=column)[0]
+
+    def addFileItem(self, filePath, parent=None):
+        """
+        Method used to add a new file item to the tree view.
+        This method will inspect to determine if the item already exists.
+
+        :type filePath: str
+        :type parent: QtGui.QStandardItem
+        :rtype: None
+        """
+
+        # Check if file item already exists
+        #
+        relativePath = self.makePathRelative(filePath)
+        item = self.findChildByPath(relativePath)
+
+        if item is not None:
+
+            return
+
+        # Get item arguments
+        #
+        sourcePath = None
+        targetPath = None
+
+        if self.isSourceFile(filePath):
+
+            sourcePath = filePath
+            targetPath = os.path.join(self._targetDirectory, relativePath)
+
+        else:
+
+            sourcePath = os.path.join(self._sourceDirectory, relativePath)
+            targetPath = filePath
+
+        # Create new item
+        #
+        item = QDepotItem(sourcePath, targetPath)
+        parent.appendRow(item)
+
+    def addDirectoryItem(self, directory, parent=None):
+        """
+        Method used to add a new directory item to the tree view.
+        This method will inspect to determine if the item already exists.
+
+        :type directory: str
+        :type parent: QtGui.QStandardItem
+        :rtype: None
+        """
+
+        # Check if directory item already exists
+        #
+        relativePath = self.makePathRelative(directory)
+        item = self.findChildByPath(relativePath)
+
+        if item is None:
+
+            # Create new item
+            #
+            name = os.path.split(directory)[1]
+            item = QtGui.QStandardItem(qiconlibrary.getIconByName('p4v_folder'), name)
+
+            parent.appendRow(item)
+
+        # Iterate through children
+        #
+        for filename in os.listdir(directory):
+
+            # Concatenate file path
+            #
+            filePath = os.path.join(directory, filename)
+
+            if os.path.isfile(filePath) and not filePath.endswith('.pyc'):
+
+                self.addFileItem(filePath, parent=item)
+
+            elif os.path.isdir(filePath):
+
+                self.addDirectoryItem(filePath, parent=item)
+
+            else:
+
+                log.info('Skipping: %s' % filePath)
+                continue
 
     @classmethod
     def findChildByName(cls, parent, name, column=0):
@@ -578,6 +651,24 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
             return False
 
+    def makeDirectories(self, directory):
+        """
+        Creates all of the directories from the supplied path.
+        For simplicity sake this method will ignore any pre-existing directories.
+
+        :type directory: str
+        :rtype: None
+        """
+
+        try:
+
+            return os.makedirs(directory)
+
+        except OSError as exception:
+
+            log.debug(exception)
+            return
+
     def makePathRelative(self, filePath):
         """
         Method used to generate a relative path from the supplied file path.
@@ -595,13 +686,34 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         else:
 
             return os.path.relpath(filePath, self._targetDirectory)
-
-    def changeSource(self, pressed=False):
+    # endregion
+    
+    # region Events
+    def showEvent(self, event):
         """
-        Slot method called whenever the source button is pressed.
-        This method will prompt the user with a directory dialog to change the package source.
+        Overloaded method called after the window has been shown.
 
-        :type pressed: bool
+        :type event: QtGui.QShowEvent
+        :rtype: None
+        """
+
+        # Call inherited method
+        #
+        super(QP4ckageMerger, self).showEvent(event)
+
+        # Populate workspaces
+        #
+        self.refreshWorkspaces()
+    # endregion
+    
+    # region Slots
+    @QtCore.Slot(bool)
+    def on_sourceButton_clicked(self, checked=False):
+        """
+        Clicked slot method responsible for updating the source directory.
+        This method will prompt the user with a directory dialog to change this value.
+
+        :type checked: bool
         :rtype: None
         """
 
@@ -620,9 +732,10 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
             self.sourceLineEdit.setText(sourceDirectory)
 
-    def sourceChanged(self, text):
+    @QtCore.Slot(str)
+    def on_sourceLineEdit_textChanged(self, text):
         """
-        Slot method called whenever the source line edit is changed.
+        Text changed slot method responsible for updating the internal source directory.
 
         :type text: str
         :rtype: None
@@ -630,12 +743,13 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
         self._sourceDirectory = os.path.normpath(text)
 
-    def changeTarget(self, pressed=False):
+    @QtCore.Slot(bool)
+    def on_targetButton_clicked(self, checked=False):
         """
-        Slot method called whenever the target button is pressed.
-        This method will prompt the user with a directory dialog to change the package source.
+        Clicked slot method responsible for updating the target directory.
+        This method will prompt the user with a directory dialog to change this value.
 
-        :type pressed: bool
+        :type checked: bool
         :rtype: None
         """
 
@@ -654,9 +768,10 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
             self.targetLineEdit.setText(targetDirectory)
 
-    def targetChanged(self, text):
+    @QtCore.Slot(str)
+    def on_targetLineEdit_textChanged(self, text):
         """
-        Slot method called whenever the target line edit is changed.
+        Text changed slot method responsible for updating the internal target directory.
 
         :type text: str
         :rtype: None
@@ -664,10 +779,12 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
         self._targetDirectory = os.path.normpath(text)
 
-    def diff(self):
+    @QtCore.Slot(bool)
+    def on_diffButton_clicked(self, checked=False):
         """
-        Diffs the current source and target directories.
+        Clicked slot method responsible for diffing the source and target packages.
 
+        :type checked: bool
         :rtype: None
         """
 
@@ -698,96 +815,12 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         #
         self.packageTreeView.expandAll()
 
-    def addFileItem(self, filePath, parent=None):
+    @QtCore.Slot(bool)
+    def on_refreshButton_clicked(self, checked=False):
         """
-        Method used to add a new file item to the tree view.
-        This method will inspect to determine if the item already exists.
+        Clicked slot method responsible for repopulating the workspaces based on the current user credentials.
 
-        :type filePath: str
-        :type parent: QtGui.QStandardItem
-        :rtype: None
-        """
-
-        # Check if file item already exists
-        #
-        relativePath = self.makePathRelative(filePath)
-        item = self.findChildByPath(relativePath)
-
-        if item is not None:
-
-            return
-
-        # Get item arguments
-        #
-        sourcePath = None
-        targetPath = None
-
-        if self.isSourceFile(filePath):
-
-            sourcePath = filePath
-            targetPath = os.path.join(self._targetDirectory, relativePath)
-
-        else:
-
-            sourcePath = os.path.join(self._sourceDirectory, relativePath)
-            targetPath = filePath
-
-        # Create new item
-        #
-        item = QDepotItem(sourcePath, targetPath)
-        parent.appendRow(item)
-
-    def addDirectoryItem(self, directory, parent=None):
-        """
-        Method used to add a new directory item to the tree view.
-        This method will inspect to determine if the item already exists.
-
-        :type directory: str
-        :type parent: QtGui.QStandardItem
-        :rtype: None
-        """
-
-        # Check if directory item already exists
-        #
-        relativePath = self.makePathRelative(directory)
-        item = self.findChildByPath(relativePath)
-
-        if item is None:
-
-            # Create new item
-            #
-            name = os.path.split(directory)[1]
-            item = QtGui.QStandardItem(qiconlibrary.getIconByName('p4v_folder'), name)
-
-            parent.appendRow(item)
-
-        # Iterate through children
-        #
-        for filename in os.listdir(directory):
-
-            # Concatenate file path
-            #
-            filePath = os.path.join(directory, filename)
-
-            if os.path.isfile(filePath) and not filePath.endswith('.pyc'):
-
-                self.addFileItem(filePath, parent=item)
-
-            elif os.path.isdir(filePath):
-
-                self.addDirectoryItem(filePath, parent=item)
-
-            else:
-
-                log.info('Skipping: %s' % filePath)
-                continue
-
-    def refreshWorkspaces(self, pressed=False):
-        """
-        Slot method called whenever the user clicks the refresh button.
-        This method will repopulate the workspaces based on the user credentials.
-
-        :type pressed: bool
+        :type checked: bool
         :rtype: None
         """
 
@@ -803,10 +836,10 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         self.workspaceComboBox.clear()
         self.workspaceComboBox.addItems([x.name for x in self._clients.values()])
 
-    def workspaceChanged(self, index):
+    @QtCore.Slot(int)
+    def on_workspaceComboBox_currentIndexChanged(self, index):
         """
-        Slot method called whenever the selected workspace combobox item is changed.
-        This method will repopulate the changelist combo box based on the client changelists.
+        Current index changed slot method responsible for updating the changelists associated with selected workspace.
 
         :type index: int
         :rtype: None
@@ -828,10 +861,10 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
             self.changelistComboBox.addItems(self._changelists)
 
-    def changelistChanged(self, index):
+    @QtCore.Slot(int)
+    def on_changeListComboBox_currentIndexChanged(self, index):
         """
-        Slot method called whenever the selected changelist combobox item is changed.
-        This method will store an internal reference to the newly selected item.
+        Current index changed slot method responsible for updating the internal changelist.
 
         :type index: int
         :rtype: None
@@ -839,28 +872,12 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
         self._currentChangelist = self._changelists[index]
 
-    def makeDirectories(self, directory):
+    @QtCore.Slot(bool)
+    def on_commitButton_clicked(self, checked=False):
         """
-        Creates all of the directories from the supplied path.
-        For simplicity sake this method will ignore any pre-existing directories.
+        Clicked slot method responsible for committing the found changes to the specified changelist.
 
-        :type directory: str
-        :rtype: None
-        """
-
-        try:
-
-            return os.makedirs(directory)
-
-        except OSError as exception:
-
-            log.debug(exception)
-            return
-
-    def commit(self):
-        """
-        Method used to commit the found changes to the user specified changelist.
-        This method cannot run without a valid perforce connection!
+        :type checked: bool
         :rtype: None
         """
 
@@ -918,3 +935,4 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
             else:
 
                 continue
+    # endregion
