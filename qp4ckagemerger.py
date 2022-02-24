@@ -7,7 +7,7 @@ from enum import Enum
 from collections import deque
 from PySide2 import QtCore, QtWidgets, QtGui
 
-from dcc.userinterface import qproxywindow, qiconlibrary
+from dcc.userinterface import quicwindow, qiconlibrary
 from dcc.perforce import clientutils, cmds, isConnected
 
 import logging
@@ -141,7 +141,7 @@ class QDepotItem(QtGui.QStandardItem):
             return QFileStatus.Add
 
 
-class QP4ckageMerger(qproxywindow.QProxyWindow):
+class QP4ckageMerger(quicwindow.QUicWindow):
     """
     Overload of QProxyWindow used to display changelist updates.
     """
@@ -157,207 +157,18 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         :keyword flags: QtCore.Qt.WindowFlags
         """
 
-        # Call parent method
-        #
-        super(QP4ckageMerger, self).__init__(*args, **kwargs)
-
-        # Declare class variables
+        # Declare private variables
         #
         self._sourceDirectory = ''
         self._targetDirectory = ''
-
         self._clients = None
         self._currentClient = None
-
         self._changelists = None
         self._currentChangelist = None
 
-    def __build__(self, **kwargs):
-        """
-        Private method used to build the user interface.
-
-        :rtype: None
-        """
-
         # Call parent method
         #
-        super(QP4ckageMerger, self).__build__(**kwargs)
-
-        # Create central widget
-        #
-        self.setWindowTitle('P4ckage Merger')
-        self.setMinimumSize(QtCore.QSize(400, 600))
-        self.setCentralWidget(QtWidgets.QWidget())
-        self.centralWidget().setLayout(QtWidgets.QVBoxLayout())
-
-        # Create path fields
-        #
-        self.packagesLayout = QtWidgets.QHBoxLayout()
-
-        self.packagesGroupBox = QtWidgets.QGroupBox('Python Packages:')
-        self.packagesGroupBox.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.packagesGroupBox.setLayout(self.packagesLayout)
-
-        # Create source line edit
-        #
-        self.sourceLabel = QtWidgets.QLabel('Source Package:')
-        self.sourceLabel.setFixedSize(QtCore.QSize(85, 20))
-        self.sourceLabel.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-
-        self.sourceLineEdit = QtWidgets.QLineEdit('')
-        self.sourceLineEdit.setReadOnly(True)
-        self.sourceLineEdit.setFixedHeight(20)
-        self.sourceLineEdit.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.sourceLineEdit.textChanged.connect(self.on_sourceLineEdit_textChanged)
-
-        self.sourceButton = QtWidgets.QPushButton('...')
-        self.sourceButton.clicked.connect(self.on_sourceButton_clicked)
-
-        self.sourceLayout = QtWidgets.QHBoxLayout()
-        self.sourceLayout.addWidget(self.sourceLabel)
-        self.sourceLayout.addWidget(self.sourceLineEdit)
-        self.sourceLayout.addWidget(self.sourceButton)
-
-        # Create target line edit
-        #
-        self.targetLabel = QtWidgets.QLabel('Target Package:')
-        self.targetLabel.setFixedSize(QtCore.QSize(85, 20))
-        self.targetLabel.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-
-        self.targetLineEdit = QtWidgets.QLineEdit('')
-        self.targetLineEdit.setReadOnly(True)
-        self.targetLineEdit.setFixedHeight(20)
-        self.targetLineEdit.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.targetLineEdit.textChanged.connect(self.on_targetLineEdit_textChanged)
-
-        self.targetButton = QtWidgets.QPushButton('...')
-        self.targetButton.clicked.connect(self.on_targetButton_clicked)
-
-        self.targetLayout = QtWidgets.QHBoxLayout()
-        self.targetLayout.addWidget(self.targetLabel)
-        self.targetLayout.addWidget(self.targetLineEdit)
-        self.targetLayout.addWidget(self.targetButton)
-
-        # Create diff button
-        #
-        self.diffButton = QtWidgets.QPushButton('Diff')
-        self.diffButton.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.diffButton.clicked.connect(self.on_diffButton_clicked)
-
-        # Assemble path fields
-        #
-        self.fieldsLayout = QtWidgets.QVBoxLayout()
-        self.fieldsLayout.addLayout(self.sourceLayout)
-        self.fieldsLayout.addLayout(self.targetLayout)
-
-        self.packagesLayout.addLayout(self.fieldsLayout)
-        self.packagesLayout.addWidget(self.diffButton)
-
-        self.centralWidget().layout().addWidget(self.packagesGroupBox)
-
-        # Create splitter widgets
-        #
-        self.packageModel = QtGui.QStandardItemModel()
-        self.packageModel.setHorizontalHeaderLabels(['Name'])
-
-        self.packageTreeView = QtWidgets.QTreeView()
-        self.packageTreeView.setEditTriggers(QtWidgets.QTreeView.NoEditTriggers)
-        self.packageTreeView.setAlternatingRowColors(True)
-        self.packageTreeView.setUniformRowHeights(True)
-        self.packageTreeView.setExpandsOnDoubleClick(False)
-        self.packageTreeView.setStyleSheet('QTreeView:Item { height: 24px; }')
-
-        self.packageTreeView.setModel(self.packageModel)
-
-        self.packageTreeView.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-        self.packageTreeView.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-
-        self.centralWidget().layout().addWidget(self.packageTreeView)
-
-        # Create changelist settings
-        #
-        self.settingsLayout = QtWidgets.QVBoxLayout()
-
-        self.settingsGroupBox = QtWidgets.QGroupBox('Perforce Settings:')
-        self.settingsGroupBox.setLayout(self.settingsLayout)
-
-        # Create workspace widgets
-        #
-        self.userLabel = QtWidgets.QLabel('User:')
-        self.userLabel.setFixedSize(QtCore.QSize(65, 20))
-        self.userLabel.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        self.userLabel.setAlignment(QtCore.Qt.AlignRight)
-
-        self.userLineEdit = QtWidgets.QLineEdit(os.environ.get('P4USER', getpass.getuser()))
-        self.userLineEdit.setFixedHeight(20)
-        self.userLineEdit.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-
-        self.refreshButton = QtWidgets.QPushButton(qiconlibrary.getIconByName('refresh'), '')
-        self.refreshButton.setFixedSize(QtCore.QSize(20, 20))
-        self.refreshButton.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        self.refreshButton.clicked.connect(self.on_refreshButton_clicked)
-
-        self.userLayout = QtWidgets.QHBoxLayout()
-        self.userLayout.addWidget(self.userLabel)
-        self.userLayout.addWidget(self.userLineEdit)
-        self.userLayout.addWidget(self.refreshButton)
-
-        self.portLabel = QtWidgets.QLabel('Port:')
-        self.portLabel.setFixedSize(QtCore.QSize(65, 20))
-        self.portLabel.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        self.portLabel.setAlignment(QtCore.Qt.AlignRight)
-
-        self.portLineEdit = QtWidgets.QLineEdit(os.environ.get('P4PORT', 'localhost:1666'))
-        self.portLineEdit.setFixedHeight(20)
-        self.portLineEdit.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-
-        self.portLayout = QtWidgets.QHBoxLayout()
-        self.portLayout.addWidget(self.portLabel)
-        self.portLayout.addWidget(self.portLineEdit)
-
-        self.workspaceLabel = QtWidgets.QLabel('Workspace:')
-        self.workspaceLabel.setFixedSize(QtCore.QSize(65, 20))
-        self.workspaceLabel.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        self.workspaceLabel.setAlignment(QtCore.Qt.AlignRight)
-
-        self.workspaceComboBox = QtWidgets.QComboBox()
-        self.workspaceComboBox.setFixedHeight(20)
-        self.workspaceComboBox.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.workspaceComboBox.currentIndexChanged.connect(self.on_workspaceComboBox_currentIndexChanged)
-
-        self.workspaceLayout = QtWidgets.QHBoxLayout()
-        self.workspaceLayout.addWidget(self.workspaceLabel)
-        self.workspaceLayout.addWidget(self.workspaceComboBox)
-
-        # Create changelist widgets
-        #
-        self.changelistLabel = QtWidgets.QLabel('Changelist:')
-        self.changelistLabel.setFixedSize(QtCore.QSize(65, 20))
-        self.changelistLabel.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        self.changelistLabel.setAlignment(QtCore.Qt.AlignRight)
-
-        self.changelistComboBox = QtWidgets.QComboBox()
-        self.changelistComboBox.setFixedHeight(20)
-        self.changelistComboBox.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.changelistComboBox.currentIndexChanged.connect(self.on_changeListComboBox_currentIndexChanged)
-
-        self.changelistLayout = QtWidgets.QHBoxLayout()
-        self.changelistLayout.addWidget(self.changelistLabel)
-        self.changelistLayout.addWidget(self.changelistComboBox)
-
-        self.settingsLayout.addLayout(self.userLayout)
-        self.settingsLayout.addLayout(self.portLayout)
-        self.settingsLayout.addLayout(self.workspaceLayout)
-        self.settingsLayout.addLayout(self.changelistLayout)
-
-        self.centralWidget().layout().addWidget(self.settingsGroupBox)
-
-        # Create commit button
-        #
-        self.commitButton = QtWidgets.QPushButton('Commit')
-        self.commitButton.clicked.connect(self.on_commitButton_clicked)
-
-        self.centralWidget().layout().addWidget(self.commitButton)
+        super(QP4ckageMerger, self).__init__(*args, **kwargs)
     # endregion
     
     # region Properties
@@ -383,6 +194,19 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
     # endregion
     
     # region Methods
+    def postLoad(self):
+        """
+        Called after the user interface has been loaded.
+
+        :rtype: None
+        """
+
+        self.packageModel = QtGui.QStandardItemModel(parent=self)
+        self.packageModel.setHorizontalHeaderLabels(['Name'])
+        self.packageTreeView.setModel(self.packageModel)
+
+        self.refreshPushButton.setIcon(qiconlibrary.getIconByName('refresh'))
+
     @staticmethod
     def iterItems(item, column=0):
         """
@@ -701,14 +525,14 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         #
         super(QP4ckageMerger, self).showEvent(event)
 
-        # Populate workspaces
+        # Populate clients
         #
-        self.refreshWorkspaces()
+        self.refreshPushButton.click()
     # endregion
     
     # region Slots
     @QtCore.Slot(bool)
-    def on_sourceButton_clicked(self, checked=False):
+    def on_sourcePushButton_clicked(self, checked=False):
         """
         Clicked slot method responsible for updating the source directory.
         This method will prompt the user with a directory dialog to change this value.
@@ -744,7 +568,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         self._sourceDirectory = os.path.normpath(text)
 
     @QtCore.Slot(bool)
-    def on_targetButton_clicked(self, checked=False):
+    def on_targetPushButton_clicked(self, checked=False):
         """
         Clicked slot method responsible for updating the target directory.
         This method will prompt the user with a directory dialog to change this value.
@@ -780,7 +604,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         self._targetDirectory = os.path.normpath(text)
 
     @QtCore.Slot(bool)
-    def on_diffButton_clicked(self, checked=False):
+    def on_diffPushButton_clicked(self, checked=False):
         """
         Clicked slot method responsible for diffing the source and target packages.
 
@@ -816,9 +640,9 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         self.packageTreeView.expandAll()
 
     @QtCore.Slot(bool)
-    def on_refreshButton_clicked(self, checked=False):
+    def on_refreshPushButton_clicked(self, checked=False):
         """
-        Clicked slot method responsible for repopulating the workspaces based on the current user credentials.
+        Clicked slot method responsible for repopulating the clients based on the current user credentials.
 
         :type checked: bool
         :rtype: None
@@ -833,13 +657,13 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
 
         # Populate combo box with new clients
         #
-        self.workspaceComboBox.clear()
-        self.workspaceComboBox.addItems([x.name for x in self._clients.values()])
+        self.clientComboBox.clear()
+        self.clientComboBox.addItems([x.name for x in self._clients.values()])
 
     @QtCore.Slot(int)
-    def on_workspaceComboBox_currentIndexChanged(self, index):
+    def on_clientComboBox_currentIndexChanged(self, index):
         """
-        Current index changed slot method responsible for updating the changelists associated with selected workspace.
+        Current index changed slot method responsible for updating the changelists associated with selected client.
 
         :type index: int
         :rtype: None
@@ -862,7 +686,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
             self.changelistComboBox.addItems(self._changelists)
 
     @QtCore.Slot(int)
-    def on_changeListComboBox_currentIndexChanged(self, index):
+    def on_changelistComboBox_currentIndexChanged(self, index):
         """
         Current index changed slot method responsible for updating the internal changelist.
 
@@ -873,7 +697,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         self._currentChangelist = self._changelists[index]
 
     @QtCore.Slot(bool)
-    def on_commitButton_clicked(self, checked=False):
+    def on_commitPushButton_clicked(self, checked=False):
         """
         Clicked slot method responsible for committing the found changes to the specified changelist.
 
@@ -885,7 +709,7 @@ class QP4ckageMerger(qproxywindow.QProxyWindow):
         #
         user = self.userLineEdit.text()
         port = self.portLineEdit.text()
-        client = self.workspaceComboBox.currentText()
+        client = self.clientComboBox.currentText()
         changelist = self.changelistComboBox.currentText()
 
         if not client or not changelist:
