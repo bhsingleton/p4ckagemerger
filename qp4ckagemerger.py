@@ -207,6 +207,41 @@ class QP4ckageMerger(quicwindow.QUicWindow):
 
         self.refreshPushButton.setIcon(qiconlibrary.getIconByName('refresh'))
 
+    def loadSettings(self):
+        """
+        Loads the user settings.
+
+        :rtype: None
+        """
+
+        # Call parent method
+        #
+        super(QP4ckageMerger, self).loadSettings()
+
+        # Load user settings
+        #
+        user = self.settings.value('editor/user', defaultValue=os.environ.get('P4USER' ''), type=str)
+        self.userLineEdit.setText(user)
+
+        port = self.settings.value('editor/port', defaultValue=os.environ.get('P4PORT', ''), type=str)
+        self.portLineEdit.setText(port)
+
+    def saveSettings(self):
+        """
+        Saves the user settings.
+
+        :rtype: None
+        """
+
+        # Call parent method
+        #
+        super(QP4ckageMerger, self).saveSettings()
+
+        # Save user settings
+        #
+        self.settings.setValue('editor/user', self.userLineEdit.text())
+        self.settings.setValue('editor/port', self.portLineEdit.text())
+
     @staticmethod
     def iterItems(item, column=0):
         """
