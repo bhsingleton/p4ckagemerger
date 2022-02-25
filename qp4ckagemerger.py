@@ -1,7 +1,6 @@
 import os
 import sys
 import shutil
-import getpass
 
 from enum import Enum
 from collections import deque
@@ -151,11 +150,16 @@ class QP4ckageMerger(quicwindow.QUicWindow):
 
     def __init__(self, *args, **kwargs):
         """
-        Overloaded method called after a new instance has been created.
+        Private method called after a new instance has been created.
 
         :keyword parent: QtWidgets.QWidget
         :keyword flags: QtCore.Qt.WindowFlags
+        :rtype: None
         """
+
+        # Call parent methods
+        #
+        super(QP4ckageMerger, self).__init__(*args, **kwargs)
 
         # Declare private variables
         #
@@ -165,10 +169,6 @@ class QP4ckageMerger(quicwindow.QUicWindow):
         self._currentClient = None
         self._changelists = None
         self._currentChangelist = None
-
-        # Call parent method
-        #
-        super(QP4ckageMerger, self).__init__(*args, **kwargs)
     # endregion
     
     # region Properties
