@@ -6,7 +6,7 @@ from enum import Enum
 from collections import deque
 from PySide2 import QtCore, QtWidgets, QtGui
 
-from dcc.userinterface import quicwindow, qiconlibrary
+from dcc.ui import quicwindow, qiconlibrary
 from dcc.perforce import clientutils, cmds, isConnected
 
 import logging
