@@ -17,7 +17,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>P4ckage Merger</string>
+   <string>|| P4ckage Merger</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -388,6 +388,10 @@
            <property name="text">
             <string/>
            </property>
+           <property name="icon">
+            <iconset resource="../dcc/ui/icons/icons.qrc">
+             <normaloff>:/icons/refresh.png</normaloff>:/icons/refresh.png</iconset>
+           </property>
           </widget>
          </item>
         </layout>
@@ -459,6 +463,8 @@
    </layout>
   </widget>
  </widget>
- <resources/>
+ <resources>
+  <include location="../dcc/ui/icons/icons.qrc"/>
+ </resources>
  <connections/>
 </ui>
