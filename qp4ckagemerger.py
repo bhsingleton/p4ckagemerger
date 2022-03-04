@@ -201,11 +201,10 @@ class QP4ckageMerger(quicwindow.QUicWindow):
         :rtype: None
         """
 
-        self.packageModel = QtGui.QStandardItemModel(parent=self)
-        self.packageModel.setHorizontalHeaderLabels(['Name'])
-        self.packageTreeView.setModel(self.packageModel)
+        self.packageItemModel = QtGui.QStandardItemModel(parent=self)
+        self.packageItemModel.setHorizontalHeaderLabels(['Name'])
 
-        self.refreshPushButton.setIcon(qiconlibrary.getIconByName('refresh'))
+        self.packageTreeView.setModel(self.packageItemModel)
 
     def loadSettings(self):
         """
@@ -290,7 +289,7 @@ class QP4ckageMerger(quicwindow.QUicWindow):
         :rtype: list[QtGui.QStandardItem]
         """
 
-        return list(self.iterItems(self.packageModel.invisibleRootItem(), column=column))
+        return list(self.iterItems(self.packageItemModel.invisibleRootItem(), column=column))
 
     def topLevelItem(self, column=0):
         """
@@ -656,14 +655,14 @@ class QP4ckageMerger(quicwindow.QUicWindow):
 
         # Reset package model
         #
-        self.packageModel.setRowCount(0)
+        self.packageItemModel.setRowCount(0)
 
         # Add top level item
         #
         name = os.path.split(self._sourceDirectory)[1]
         topLevelItem = QtGui.QStandardItem(qiconlibrary.getIconByName('p4v_folder'), name)
 
-        self.packageModel.invisibleRootItem().appendRow(topLevelItem)
+        self.packageItemModel.invisibleRootItem().appendRow(topLevelItem)
 
         # Add source directory
         #
