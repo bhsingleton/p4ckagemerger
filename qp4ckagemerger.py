@@ -201,7 +201,10 @@ class QP4ckageMerger(quicwindow.QUicWindow):
         :rtype: None
         """
 
+        # Initialize package item model
+        #
         self.packageItemModel = QtGui.QStandardItemModel(parent=self)
+        self.packageItemModel.setObjectName('packageItemModel')
         self.packageItemModel.setHorizontalHeaderLabels(['Name'])
 
         self.packageTreeView.setModel(self.packageItemModel)
