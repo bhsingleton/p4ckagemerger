@@ -2,10 +2,9 @@ import os
 import sys
 import shutil
 
-from enum import Enum
+from Qt import QtCore, QtWidgets, QtGui
 from collections import deque
-from PySide2 import QtCore, QtWidgets, QtGui
-
+from enum import Enum
 from dcc.ui import quicwindow, qiconlibrary
 from dcc.perforce import clientutils, cmds, isConnected
 
@@ -28,6 +27,7 @@ class QDepotItem(QtGui.QStandardItem):
     Overload of QStandardItem used to display depot items.
     """
 
+    # region Dunderscores
     __icons__ = {
         QFileStatus.Unchanged: qiconlibrary.getIconByName('p4v_file'),
         QFileStatus.Add: qiconlibrary.getIconByName('p4v_file_add'),
@@ -53,7 +53,9 @@ class QDepotItem(QtGui.QStandardItem):
 
         self._filename = os.path.split(sourcePath)[1]
         self._status = self.evaluateFileStatus(sourcePath, targetPath)
+    # endregion
 
+    # region Methods
     def data(self, role=QtCore.Qt.UserRole):
         """
         Overloaded method used to retrieve data based on the supplied role.
@@ -138,6 +140,7 @@ class QDepotItem(QtGui.QStandardItem):
         else:
 
             return QFileStatus.Add
+    # endregion
 
 
 class QP4ckageMerger(quicwindow.QUicWindow):
@@ -222,10 +225,10 @@ class QP4ckageMerger(quicwindow.QUicWindow):
 
         # Load user settings
         #
-        user = self.settings.value('editor/user', defaultValue=os.environ.get('P4USER' ''), type=str)
+        user = self.settings.value('editor/user', defaultValue=os.environ.get('P4USER' ''))
         self.userLineEdit.setText(user)
 
-        port = self.settings.value('editor/port', defaultValue=os.environ.get('P4PORT', ''), type=str)
+        port = self.settings.value('editor/port', defaultValue=os.environ.get('P4PORT', ''))
         self.portLineEdit.setText(port)
 
     def saveSettings(self):

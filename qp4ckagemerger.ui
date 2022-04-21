@@ -216,7 +216,7 @@
     <item>
      <widget class="QGroupBox" name="perforceGroupBox">
       <property name="title">
-       <string>Perforce Settings:</string>
+       <string>Settings:</string>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
