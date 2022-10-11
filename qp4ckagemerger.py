@@ -5,7 +5,7 @@ import shutil
 from Qt import QtCore, QtWidgets, QtGui
 from collections import deque
 from enum import Enum
-from dcc.ui import quicwindow, qiconlibrary
+from dcc.ui import quicwindow
 from dcc.perforce import clientutils, cmds, isConnected
 
 import logging
@@ -29,10 +29,10 @@ class QDepotItem(QtGui.QStandardItem):
 
     # region Dunderscores
     __icons__ = {
-        QFileStatus.Unchanged: qiconlibrary.getIconByName('p4v_file'),
-        QFileStatus.Add: qiconlibrary.getIconByName('p4v_file_add'),
-        QFileStatus.Delete: qiconlibrary.getIconByName('p4v_file_delete'),
-        QFileStatus.Edit: qiconlibrary.getIconByName('p4v_file_edit')
+        QFileStatus.Unchanged: QtGui.QIcon(':/p4v/icons/p4v_file.png'),
+        QFileStatus.Add: QtGui.QIcon(':/p4v/icons/p4v_file_add.png'),
+        QFileStatus.Delete: QtGui.QIcon(':/p4v/icons/p4v_file_delete.png'),
+        QFileStatus.Edit: QtGui.QIcon(':/p4v/icons/p4v_file_edit.png')
     }
 
     def __init__(self, sourcePath, targetPath):
@@ -367,7 +367,7 @@ class QP4ckageMerger(quicwindow.QUicWindow):
             # Create new item
             #
             name = os.path.split(directory)[1]
-            item = QtGui.QStandardItem(qiconlibrary.getIconByName('p4v_folder'), name)
+            item = QtGui.QStandardItem(QtGui.QIcon(':/p4v/icons/p4v_folder.png'), name)
 
             parent.appendRow(item)
 
@@ -666,7 +666,7 @@ class QP4ckageMerger(quicwindow.QUicWindow):
         # Add top level item
         #
         name = os.path.split(self._sourceDirectory)[1]
-        topLevelItem = QtGui.QStandardItem(qiconlibrary.getIconByName('p4v_folder'), name)
+        topLevelItem = QtGui.QStandardItem(QtGui.QIcon(':/p4v/icons/p4v_folder.png'), name)
 
         self.packageItemModel.invisibleRootItem().appendRow(topLevelItem)
 
