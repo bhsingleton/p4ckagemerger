@@ -15,6 +15,9 @@ log.setLevel(logging.INFO)
 
 
 class QFileStatus(Enum):
+    """
+    Enum class of all the possible file statuses.
+    """
 
     Unchanged = 0
     Add = 1
@@ -197,12 +200,16 @@ class QP4ckageMerger(quicwindow.QUicWindow):
     # endregion
     
     # region Methods
-    def postLoad(self):
+    def postLoad(self, *args, **kwargs):
         """
         Called after the user interface has been loaded.
 
         :rtype: None
         """
+
+        # Call parent method
+        #
+        super(QP4ckageMerger, self).postLoad(*args, **kwargs)
 
         # Initialize package item model
         #
