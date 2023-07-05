@@ -152,7 +152,7 @@ class QP4ckageMerger(quicwindow.QUicWindow):
     """
 
     # region Dunderscores
-    __escapechars__ = ''.join([chr(char) for char in range(1, 32)])
+    __escape_chars__ = ''.join([chr(char) for char in range(1, 32)])
 
     def __init__(self, *args, **kwargs):
         """
@@ -175,6 +175,39 @@ class QP4ckageMerger(quicwindow.QUicWindow):
         self._currentClient = None
         self._changelists = None
         self._currentChangelist = None
+
+        # Declare public variables
+        #
+        self.packageGroupBox = None
+        self.sourceWidget = None
+        self.sourceLabel = None
+        self.sourceLineEdit = None
+        self.sourcePushButton = None
+        self.targetWidget = None
+        self.targetLabel = None
+        self.targetLineEdit = None
+        self.targetPushButton = None
+        self.diffPushButton = None
+
+        self.packageTreeView = None
+        self.packageItemModel = None
+
+        self.settingsGroupBox = None
+        self.userWidget = None
+        self.userLabel = None
+        self.userLineEdit = None
+        self.portWidget = None
+        self.portLabel = None
+        self.portLineEdit = None
+        self.clientWidget = None
+        self.clientLabel = None
+        self.clientComboBox = None
+        self.refreshPushButton = None
+        self.changelistWidget = None
+        self.changelistLabel = None
+        self.changelistComboBox = None
+
+        self.commitPushButton = None
     # endregion
     
     # region Properties
@@ -219,43 +252,45 @@ class QP4ckageMerger(quicwindow.QUicWindow):
 
         self.packageTreeView.setModel(self.packageItemModel)
 
-    def loadSettings(self):
+    def loadSettings(self, settings):
         """
         Loads the user settings.
 
+        :type settings: QtCore.QSettings
         :rtype: None
         """
 
         # Call parent method
         #
-        super(QP4ckageMerger, self).loadSettings()
+        super(QP4ckageMerger, self).loadSettings(settings)
 
         # Load user settings
         #
-        user = self.settings.value('editor/user', defaultValue=os.environ.get('P4USER' ''))
+        user = settings.value('editor/user', defaultValue=os.environ.get('P4USER' ''))
         self.userLineEdit.setText(user)
 
-        port = self.settings.value('editor/port', defaultValue=os.environ.get('P4PORT', ''))
+        port = settings.value('editor/port', defaultValue=os.environ.get('P4PORT', ''))
         self.portLineEdit.setText(port)
 
-    def saveSettings(self):
+    def saveSettings(self, settings):
         """
         Saves the user settings.
 
+        :type settings: QtCore.QSettings
         :rtype: None
         """
 
         # Call parent method
         #
-        super(QP4ckageMerger, self).saveSettings()
+        super(QP4ckageMerger, self).saveSettings(settings)
 
         # Save user settings
         #
-        self.settings.setValue('editor/user', self.userLineEdit.text())
-        self.settings.setValue('editor/port', self.portLineEdit.text())
+        settings.setValue('editor/user', self.userLineEdit.text())
+        settings.setValue('editor/port', self.portLineEdit.text())
 
     @staticmethod
-    def iterItems(item, column=0):
+    def iterChildItems(item, column=0):
         """
         Generator method used to iterate through the immediate children belonging to the supplied item.
         An additional column keyword can be supplied to offset the lookup.
@@ -291,7 +326,7 @@ class QP4ckageMerger(quicwindow.QUicWindow):
 
             # Add item's children to queue
             #
-            queue.extend(self.iterItems(item))
+            queue.extend(self.iterChildItems(item))
 
     def topLevelItems(self, column=0):
         """
@@ -302,7 +337,7 @@ class QP4ckageMerger(quicwindow.QUicWindow):
         :rtype: list[QtGui.QStandardItem]
         """
 
-        return list(self.iterItems(self.packageItemModel.invisibleRootItem(), column=column))
+        return list(self.iterChildItems(self.packageItemModel.invisibleRootItem(), column=column))
 
     def topLevelItem(self, column=0):
         """
@@ -413,7 +448,7 @@ class QP4ckageMerger(quicwindow.QUicWindow):
 
         # Collect rows with text
         #
-        rows = [x for x in cls.iterItems(parent, column=column) if x.text() == name]
+        rows = [x for x in cls.iterChildItems(parent, column=column) if x.text() == name]
         numRows = len(rows)
 
         if numRows:
@@ -485,11 +520,11 @@ class QP4ckageMerger(quicwindow.QUicWindow):
         #
         if sys.version_info.major == 2:
 
-            return string.translate('', cls.__escapechars__)
+            return string.translate('', cls.__escape_chars__)
 
         else:
 
-            return string.translate(str.maketrans('', '', cls.__escapechars__))
+            return string.translate(str.maketrans('', '', cls.__escape_chars__))
 
     @classmethod
     def isIdentical(cls, sourcePath, targetPath):
