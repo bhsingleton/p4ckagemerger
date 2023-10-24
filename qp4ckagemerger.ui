@@ -103,6 +103,9 @@
               <height>24</height>
              </size>
             </property>
+            <property name="toolTip">
+             <string>Selects the package from source control.</string>
+            </property>
             <property name="text">
              <string/>
             </property>
@@ -190,6 +193,9 @@
               <width>24</width>
               <height>24</height>
              </size>
+            </property>
+            <property name="toolTip">
+             <string>Selects the package to be merged into source control.</string>
             </property>
             <property name="text">
              <string/>
