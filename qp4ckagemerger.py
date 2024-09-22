@@ -266,10 +266,10 @@ class QP4ckageMerger(quicwindow.QUicWindow):
 
         # Load user settings
         #
-        user = settings.value('editor/user', defaultValue=os.environ.get('P4USER' ''))
+        user = settings.value('editor/user', defaultValue=os.environ.get('P4USER' ''), type=str)
         self.userLineEdit.setText(user)
 
-        port = settings.value('editor/port', defaultValue=os.environ.get('P4PORT', ''))
+        port = settings.value('editor/port', defaultValue=os.environ.get('P4PORT', ''), type=str)
         self.portLineEdit.setText(port)
 
     def saveSettings(self, settings):
